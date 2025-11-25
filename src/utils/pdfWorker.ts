@@ -20,6 +20,9 @@ export const processPdfFile = async (
     const arrayBuffer = await file.arrayBuffer();
     const fileId = uuidv4();
 
+    // Create a copy for storage (PDF.js may detach the original buffer)
+    const storedBuffer = arrayBuffer.slice(0);
+
     // Load using PDF.js for rendering
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     const pdf = await loadingTask.promise;
@@ -53,7 +56,7 @@ export const processPdfFile = async (
         pdfFile: {
             id: fileId,
             name: file.name,
-            data: arrayBuffer,
+            data: storedBuffer,
         },
         pages,
     };
