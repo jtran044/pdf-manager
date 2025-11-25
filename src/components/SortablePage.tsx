@@ -57,9 +57,9 @@ export const SortablePage: React.FC<SortablePageProps> = ({
                 />
             </div>
 
-            {/* Hover Controls */}
-            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                <div className="flex gap-2">
+            {/* Hover Controls - pointer-events-none on overlay, auto on buttons */}
+            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 pointer-events-none">
+                <div className="flex gap-2 pointer-events-auto">
                     <button
                         onClick={() => onRotate(page.id, 'ccw')}
                         className="p-2 bg-slate-800 rounded-full hover:bg-blue-600 text-white transition-colors"
@@ -79,7 +79,7 @@ export const SortablePage: React.FC<SortablePageProps> = ({
                 </div>
                 <button
                     onClick={() => onRemove(page.id)}
-                    className="p-2 bg-slate-800 rounded-full hover:bg-red-600 text-white transition-colors mt-2"
+                    className="p-2 bg-slate-800 rounded-full hover:bg-red-600 text-white transition-colors mt-2 pointer-events-auto"
                     title="Delete Page"
                     aria-label="Delete page"
                 >
