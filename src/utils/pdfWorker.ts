@@ -12,11 +12,16 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 export const processPdfFile = async (
     file: File
 ): Promise<{ pdfFile: PDFFile; pages: PageData[] }> => {
-    const arrayBuffer = await file.arrayBuffer();
+    // Read the file as ArrayBuffer
+    const originalBuffer = await file.arrayBuffer();
     const fileId = uuidv4();
 
-    // Load using PDF.js for rendering
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    // Create a copy for pdf.js to prevent ArrayBuffer detachment
+    // pdf.js may transfer the buffer, so we keep the original for pdf-lib
+    const bufferCopy = originalBuffer.slice(0);
+
+    // Load using PDF.js for rendering (uses the copy)
+    const loadingTask = pdfjsLib.getDocument({ data: bufferCopy });
     const pdf = await loadingTask.promise;
 
     const pages: PageData[] = [];
@@ -44,11 +49,12 @@ export const processPdfFile = async (
         }
     }
 
+    // Return the original buffer for pdf-lib to use later
     return {
         pdfFile: {
             id: fileId,
             name: file.name,
-            data: arrayBuffer,
+            data: originalBuffer, // Use original, not the copy
         },
         pages,
     };
@@ -67,7 +73,11 @@ export const generateFinalPdf = async (
         const fileBuffer = files.get(pageData.fileId);
         if (!fileBuffer) continue;
 
-        const sourcePdf = await PDFDocument.load(fileBuffer);
+        // Clone the buffer to prevent detachment issues
+        // pdf-lib may modify the buffer, so we use a copy
+        const bufferCopy = fileBuffer.slice(0);
+
+        const sourcePdf = await PDFDocument.load(bufferCopy);
         const [copiedPage] = await finalPdf.copyPages(sourcePdf, [pageData.pageIndex]);
 
         // Apply rotation
