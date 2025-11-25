@@ -49,7 +49,6 @@ export const processPdfFile = async (
         }
     }
 
-    // Return the original buffer for pdf-lib to use later
     return {
         pdfFile: {
             id: fileId,
