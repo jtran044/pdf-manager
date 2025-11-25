@@ -1,10 +1,15 @@
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsModule from 'pdfjs-dist';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { PDFDocument, degrees } from 'pdf-lib';
 import { PDFFile, PageData } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Handle both ESM default export and namespace import
+const pdfjsLib = (pdfjsModule as any).default ?? pdfjsModule;
+
+// Configure PDF.js worker using CDN
+const PDFJS_VERSION = '3.11.174';
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js`;
 
 /**
  * Loads a PDF file, renders thumbnails for each page, and returns a list of PageData objects.
@@ -12,16 +17,11 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 export const processPdfFile = async (
     file: File
 ): Promise<{ pdfFile: PDFFile; pages: PageData[] }> => {
-    // Read the file as ArrayBuffer
-    const originalBuffer = await file.arrayBuffer();
+    const arrayBuffer = await file.arrayBuffer();
     const fileId = uuidv4();
 
-    // Create a copy for pdf.js to prevent ArrayBuffer detachment
-    // pdf.js may transfer the buffer, so we keep the original for pdf-lib
-    const bufferCopy = originalBuffer.slice(0);
-
-    // Load using PDF.js for rendering (uses the copy)
-    const loadingTask = pdfjsLib.getDocument({ data: bufferCopy });
+    // Load using PDF.js for rendering
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     const pdf = await loadingTask.promise;
 
     const pages: PageData[] = [];
@@ -53,7 +53,7 @@ export const processPdfFile = async (
         pdfFile: {
             id: fileId,
             name: file.name,
-            data: originalBuffer, // Use original, not the copy
+            data: arrayBuffer,
         },
         pages,
     };
@@ -72,11 +72,7 @@ export const generateFinalPdf = async (
         const fileBuffer = files.get(pageData.fileId);
         if (!fileBuffer) continue;
 
-        // Clone the buffer to prevent detachment issues
-        // pdf-lib may modify the buffer, so we use a copy
-        const bufferCopy = fileBuffer.slice(0);
-
-        const sourcePdf = await PDFDocument.load(bufferCopy);
+        const sourcePdf = await PDFDocument.load(fileBuffer);
         const [copiedPage] = await finalPdf.copyPages(sourcePdf, [pageData.pageIndex]);
 
         // Apply rotation
